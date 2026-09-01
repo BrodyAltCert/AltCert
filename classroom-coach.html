@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Classroom Coach — Alt-Cert Teacher Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600;700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#26332C;
+    --paper:#F4EFE3;
+    --chalk:#FBFAF5;
+    --gold:#D9A441;
+    --rust:#A8482F;
+    --slate:#55655C;
+    --line: rgba(38,51,44,0.14);
+
+    --d1:#3E7C74; /* Learning-Centered & Adaptive Instruction */
+    --d2:#C1603F; /* Relational, Inclusive & Culturally Responsive */
+    --d3:#B98A2E; /* Classroom Leadership, Management & Ethical Responsibility */
+    --d4:#6B5578; /* Reflective Practice & Professional Collaboration */
+
+    --radius: 10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    font-size:15px;
+    line-height:1.5;
+  }
+  .app{
+    max-width:820px;
+    margin:0 auto;
+    padding:18px 16px 14px;
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    display:flex;
+    align-items:flex-start;
+    gap:14px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:14px;
+  }
+  .seal{
+    flex:0 0 auto;
+    width:46px; height:46px;
+    border-radius:50%;
+    background:var(--ink);
+    color:var(--chalk);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Spectral', serif;
+    font-weight:700;
+    font-size:18px;
+    border:2px solid var(--gold);
+  }
+  .headline h1{
+    margin:0 0 2px;
+    font-family:'Spectral', serif;
+    font-weight:600;
+    font-size:22px;
+    letter-spacing:0.2px;
+  }
+  .headline p{
+    margin:0;
+    color:var(--slate);
+    font-size:13px;
+  }
+  .stat-strip{
+    margin-left:auto;
+    display:flex;
+    gap:14px;
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:var(--slate);
+    text-align:right;
+    white-space:nowrap;
+  }
+  .stat-strip div span{display:block; color:var(--ink); font-weight:500; font-size:13px;}
+
+  /* ---------- Domain legend ---------- */
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 16px;
+    margin-bottom:16px;
+    font-size:12px;
+    color:var(--slate);
+  }
+  .legend .tag{display:flex; align-items:center; gap:6px;}
+  .legend .dot{width:9px; height:9px; border-radius:50%; display:inline-block;}
+
+  /* ---------- Quick-start scenario grid ---------- */
+  .quickstart-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    color:var(--slate);
+    margin-bottom:8px;
+  }
+  .quickstart{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  @media (max-width:520px){
+    .quickstart{grid-template-columns:1fr;}
+    .stat-strip{display:none;}
+  }
+  .card-btn{
+    text-align:left;
+    background:var(--chalk);
+    border:1px solid var(--line);
+    border-left:4px solid var(--card-color, var(--ink));
+    border-radius:var(--radius);
+    padding:10px 12px;
+    font-family:'Work Sans', sans-serif;
+    font-size:13.5px;
+    color:var(--ink);
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .card-btn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 3px 10px rgba(38,51,44,0.10);
+  }
+  .card-btn:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+
+  /* ---------- Chat ---------- */
+  .chat-shell{
+    background:var(--chalk);
+    border:1px solid var(--line);
+    border-radius:14px;
+    display:flex;
+    flex-direction:column;
+    min-height:340px;
+    max-height:56vh;
+    overflow:hidden;
+  }
+  .chat-log{
+    flex:1;
+    overflow-y:auto;
+    padding:16px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+  .empty-state{
+    margin:auto;
+    text-align:center;
+    color:var(--slate);
+    font-size:13px;
+    max-width:320px;
+  }
+  .msg{max-width:82%; display:flex; flex-direction:column;}
+  .msg.user{align-self:flex-end; align-items:flex-end;}
+  .msg.assistant{align-self:flex-start; align-items:flex-start;}
+  .bubble{
+    padding:10px 13px;
+    border-radius:12px;
+    font-size:14px;
+    white-space:pre-wrap;
+  }
+  .msg.user .bubble{
+    background:var(--ink);
+    color:var(--chalk);
+    border-bottom-right-radius:3px;
+  }
+  .msg.assistant .bubble{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-bottom-left-radius:3px;
+  }
+  .typing .bubble{color:var(--slate); font-style:italic;}
+
+  /* Signature element: the consensus stamp */
+  .stamp{
+    margin-top:6px;
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+    padding:4px 10px;
+    border:1.5px dashed var(--stamp-color, var(--rust));
+    color:var(--stamp-color, var(--rust));
+    border-radius:4px;
+    transform:rotate(-1.3deg);
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    background:rgba(255,255,255,0.4);
+  }
+  .stamp .mean{font-weight:600;}
+
+  .readmore{
+    margin-top:6px;
+    padding:8px 10px;
+    border-left:2px solid var(--line);
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    max-width:100%;
+  }
+  .readmore-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--slate);
+  }
+  .readmore a{
+    font-size:12px;
+    color:var(--ink);
+    text-decoration:none;
+    border-bottom:1px solid var(--line);
+    line-height:1.4;
+  }
+  .readmore a:hover{color:var(--rust); border-bottom-color:var(--rust);}
+
+  .composer{
+    display:flex;
+    gap:8px;
+    padding:12px;
+    border-top:1px solid var(--line);
+    background:var(--chalk);
+  }
+  .composer textarea{
+    flex:1;
+    resize:none;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:9px 11px;
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    color:var(--ink);
+    background:var(--paper);
+    max-height:90px;
+  }
+  .composer textarea:focus{outline:2px solid var(--gold); outline-offset:1px;}
+  .send-btn{
+    border:none;
+    background:var(--gold);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    font-weight:600;
+    font-size:13.5px;
+    border-radius:8px;
+    padding:0 18px;
+    cursor:pointer;
+  }
+  .send-btn:disabled{opacity:0.5; cursor:default;}
+  .send-btn:hover:not(:disabled){filter:brightness(0.96);}
+
+  .toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:8px;
+  }
+  .reset-link{
+    background:none; border:none;
+    font-family:'Work Sans', sans-serif;
+    font-size:12px;
+    color:var(--slate);
+    text-decoration:underline;
+    cursor:pointer;
+    padding:4px 0;
+  }
+  footer.disclaimer{
+    margin-top:10px;
+    font-size:11px;
+    color:var(--slate);
+    line-height:1.5;
+  }
+  footer.disclaimer strong{color:var(--ink);}
+
+  /* ---------- Participant badge ---------- */
+  .participant-badge{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    color:var(--slate);
+    margin-top:2px;
+  }
+  .participant-badge button{
+    background:none; border:none;
+    color:var(--slate);
+    text-decoration:underline;
+    cursor:pointer;
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    padding:0;
+    margin-left:6px;
+  }
+
+  /* ---------- Overlays / modal shared ---------- */
+  .overlay{
+    position:fixed; inset:0;
+    background:rgba(38,51,44,0.55);
+    display:flex; align-items:center; justify-content:center;
+    padding:16px;
+    z-index:50;
+  }
+  .overlay.hidden{display:none;}
+  .overlay-card{
+    background:var(--chalk);
+    border-radius:12px;
+    padding:20px;
+    max-width:420px;
+    width:100%;
+    box-shadow:0 12px 30px rgba(38,51,44,0.25);
+  }
+  .overlay-card h2{
+    font-family:'Spectral', serif;
+    font-size:17px;
+    margin:0 0 8px;
+  }
+  .overlay-card p{
+    font-size:13px;
+    color:var(--slate);
+    margin:0 0 14px;
+  }
+  .overlay-card input[type="text"]{
+    width:100%;
+    padding:9px 11px;
+    border:1px solid var(--line);
+    border-radius:8px;
+    font-family:'Work Sans', sans-serif;
+    font-size:14px;
+    background:var(--paper);
+    color:var(--ink);
+    margin-bottom:10px;
+  }
+  .overlay-actions{display:flex; gap:8px; justify-content:flex-end;}
+  .btn-primary{
+    background:var(--gold); color:var(--ink);
+    border:none; border-radius:8px;
+    font-family:'Work Sans', sans-serif;
+    font-weight:600; font-size:13px;
+    padding:8px 16px; cursor:pointer;
+  }
+  .btn-ghost{
+    background:none; border:1px solid var(--line);
+    border-radius:8px;
+    font-family:'Work Sans', sans-serif;
+    font-size:13px;
+    color:var(--slate);
+    padding:8px 16px; cursor:pointer;
+  }
+
+  /* ---------- Instructor log modal ---------- */
+  .log-card{ max-width:900px; max-height:82vh; display:flex; flex-direction:column; }
+  .log-card-header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    margin-bottom:10px;
+  }
+  .log-table-wrap{
+    overflow:auto;
+    border:1px solid var(--line);
+    border-radius:8px;
+    flex:1;
+  }
+  table.log-table{
+    border-collapse:collapse;
+    width:100%;
+    font-size:12.5px;
+  }
+  table.log-table th, table.log-table td{
+    text-align:left;
+    padding:7px 9px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  table.log-table th{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+    color:var(--slate);
+    background:var(--paper);
+    position:sticky; top:0;
+  }
+  table.log-table td.domain-cell{white-space:nowrap;}
+  table.log-table td.domain-cell .dot{
+    width:8px; height:8px; border-radius:50%;
+    display:inline-block; margin-right:5px;
+  }
+  .log-empty{padding:20px; text-align:center; color:var(--slate); font-size:13px;}
+
+  /* ---------- Login / signup ---------- */
+  .auth-tabs{display:flex; gap:6px; margin-bottom:14px;}
+  .auth-tab{
+    flex:1;
+    background:var(--paper); border:1px solid var(--line); border-radius:8px;
+    font-family:'Work Sans', sans-serif; font-size:13px; font-weight:500;
+    color:var(--slate); padding:8px 0; cursor:pointer;
+  }
+  .auth-tab.active{background:var(--ink); color:var(--chalk); border-color:var(--ink);}
+  #registerForm.hidden, #loginForm.hidden{display:none;}
+  .auth-error{
+    color:var(--rust); font-size:12px; margin:0 0 10px; min-height:0;
+  }
+  .auth-error:empty{display:none;}
+
+  /* ---------- Instructor view tabs ---------- */
+  .log-tabs{display:flex; gap:6px; margin-bottom:10px;}
+  .log-tab{
+    background:var(--paper); border:1px solid var(--line); border-radius:8px;
+    font-family:'Work Sans', sans-serif; font-size:12.5px; font-weight:500;
+    color:var(--slate); padding:6px 12px; cursor:pointer;
+  }
+  .log-tab.active{background:var(--ink); color:var(--chalk); border-color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="seal">MT</div>
+    <div class="headline">
+      <h1>Classroom Coach</h1>
+      <p>Grounded in a Montana Delphi panel of experienced teachers, administrators &amp; teacher educators</p>
+      <div class="participant-badge" id="participantBadge"></div>
+    </div>
+    <div class="stat-strip">
+      <div><span>36</span>panelists</div>
+      <div><span>3</span>rounds</div>
+      <div><span>4</span>domains</div>
+    </div>
+  </header>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="quickstart-label">Not sure where to start? Try one of these</div>
+  <div class="quickstart" id="quickstart"></div>
+
+  <div class="chat-shell">
+    <div class="chat-log" id="chatLog">
+      <div class="empty-state" id="emptyState">
+        Describe what's happening in your classroom, or tap a card above. I'll help you think it through using what this panel of experienced educators agreed matters most.
+      </div>
+    </div>
+    <div class="composer">
+      <textarea id="input" rows="1" placeholder="What's going on in your classroom today? (Please don't name specific students)"></textarea>
+      <button class="send-btn" id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="reset-link" id="resetBtn">Start a new conversation</button>
+    <button class="reset-link" id="instructorBtn">Instructor: view question log</button>
+  </div>
+
+  <footer class="disclaimer">
+    <strong>Before you rely on this:</strong> Classroom Coach offers ideas grounded in research consensus, not directives, and it isn't a substitute for your mentor, administrator, or district policy. For student safety concerns, mandated reporting, or anything urgent, contact your building administrator directly. This is a pilot support tool — if something feels off, trust your judgment and ask a person. Questions asked here are logged (with the name/ID you provide) so your instructor can see how the tool is being used and improve it. <strong>Please don't include a student's real name</strong> — describe the situation using "a student" or a first initial instead.
+  </footer>
+</div>
+
+<!-- First-run: log in or create an account before the coach is usable -->
+<div class="overlay" id="introOverlay">
+  <div class="overlay-card">
+    <h2>Sign in to Classroom Coach</h2>
+    <p><strong>Please don't name specific students</strong> when describing a situation — use "a student" or a first initial instead. Questions are logged under your account and this keeps students' privacy protected.</p>
+
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" id="tabLogin">Log In</button>
+      <button type="button" class="auth-tab" id="tabRegister">Sign Up</button>
+    </div>
+
+    <form id="loginForm">
+      <input type="text" id="loginUsername" placeholder="Username" autocomplete="username" required>
+      <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required>
+      <p class="auth-error" id="loginError"></p>
+      <div class="overlay-actions">
+        <button type="submit" class="btn-primary">Log In</button>
+      </div>
+    </form>
+
+    <form id="registerForm" class="hidden">
+      <input type="text" id="regAccessCode" placeholder="Class access code" required>
+      <input type="text" id="regName" placeholder="Your name (shown to your instructor)" maxlength="80">
+      <input type="text" id="regUsername" placeholder="Choose a username" autocomplete="username" required>
+      <input type="password" id="regPassword" placeholder="Choose a password (8+ characters)" autocomplete="new-password" required>
+      <p class="auth-error" id="registerError"></p>
+      <div class="overlay-actions">
+        <button type="submit" class="btn-primary">Create Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Instructor view: passcode-gated tables of logged questions & registered students -->
+<div class="overlay hidden" id="logModal">
+  <div class="overlay-card log-card">
+    <div class="log-card-header">
+      <div>
+        <h2>Instructor view</h2>
+        <p id="logCardSubtitle">All questions logged by participants using this widget.</p>
+      </div>
+      <div class="overlay-actions">
+        <button class="btn-ghost" id="exportCsvBtn">Export CSV</button>
+        <button class="btn-ghost" id="closeLogBtn">Close</button>
+      </div>
+    </div>
+    <div class="log-tabs">
+      <button type="button" class="log-tab active" id="logTabQuestions">Questions</button>
+      <button type="button" class="log-tab" id="logTabUsers">Registered Students</button>
+    </div>
+    <div class="log-table-wrap" id="logTableWrap">
+      <div class="log-empty">Loading…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   CONFIGURATION
+   Every request — chat, question logging, and the instructor view — now
+   goes through your Cloudflare Worker (classroom-coach-proxy), not straight
+   to Anthropic and not to window.storage. The Worker holds your Anthropic
+   key server-side AND is what actually enforces the login: it checks each
+   request's session token against the D1 "sessions" table before doing
+   anything. A student can't get a chat reply or log a question without a
+   valid session, no matter what the browser is told to do.
+   ========================================================================= */
+const WORKER_BASE_URL = "https://classroom-coach-proxy.brody-altcert.workers.dev";
+const API_ENDPOINT = WORKER_BASE_URL + "/api/chat";
+
+/* The instructor passcode is checked server-side only (in the Worker's
+   ADMIN_PASSCODE secret) — it is never stored in this file anymore. */
+
+/* =========================================================================
+   KNOWLEDGE BASE — derived from Brody & Reuer, "Delphi Study of Alternative
+   Certified Teachers' Needs for Success" (Montana, N=36, 3-round Delphi)
+   ========================================================================= */
+const DOMAINS = {
+  1: { name: "Learning-Centered & Adaptive Instruction", color: "var(--d1)",
+       desc: "Interpreting student data, adjusting instruction in real time, and aligning strategies with learner needs." },
+  2: { name: "Relational, Inclusive & Culturally Responsive Practice", color: "var(--d2)",
+       desc: "Culturally responsive teaching, relationship-building, and responsiveness to diverse learner backgrounds." },
+  3: { name: "Classroom Leadership, Management & Ethical Responsibility", color: "var(--d3)",
+       desc: "Structured learning environments, behavior management, and professional/ethical judgment." },
+  4: { name: "Reflective Practice & Professional Collaboration", color: "var(--d4)",
+       desc: "Self-reflection, collaboration with colleagues, and sustained professional growth." }
+};
+
+// [text, mean, domain, category]
+const ITEMS = [
+["Classroom procedures, expectations, organization and preparation",4.71,3,"Knowledge"],
+["Student engagement: active, student-centered approaches",4.59,1,"Knowledge"],
+["Assessment practices: formative and summative, and their role in guiding instruction",4.50,1,"Knowledge"],
+["Constructivist learning theory: student-centered learning, scaffolding, social interaction",4.45,1,"Knowledge"],
+["Relationship-building and proactive management strategies",4.44,3,"Knowledge"],
+["Pedagogical content knowledge: designing instruction with specific pedagogical approaches",4.39,1,"Knowledge"],
+["Behavioral management strategies: PBIS, trauma-informed strategies",4.38,3,"Knowledge"],
+["Differentiation for diverse learners, including gifted, ELL, and neurodiverse students",4.38,2,"Knowledge"],
+["Mandatory reporting responsibilities",4.29,3,"Knowledge"],
+["Awareness of students' varied cultural backgrounds and experiences",4.26,2,"Knowledge"],
+["Social-emotional learning: supporting self-regulation, motivation, engagement",4.24,2,"Knowledge"],
+["Learning how to learn: process of learning, not just transmission of content",4.24,1,"Knowledge"],
+["Special education: legal requirements and accommodations (IDEA, IEPs, 504s)",4.24,2,"Knowledge"],
+["Analysis of student data to differentiate and adjust instruction",4.24,1,"Knowledge"],
+["Multiple instructional models: direct, inquiry-based, collaborative, project-based",4.21,1,"Knowledge"],
+["Reflective practice: continuous learning and professional growth",4.21,4,"Knowledge"],
+["Communication and relationship-building skills",4.18,2,"Knowledge"],
+["Developmentally appropriate social/emotional needs of all students",4.18,2,"Knowledge"],
+["Reflective professional teaching practices: continuously improving through self-reflection",4.12,4,"Knowledge"],
+["Professional collaboration with parents, administrators, and support staff",4.12,4,"Knowledge"],
+["Cultural competence: valuing students' diverse backgrounds",4.09,2,"Knowledge"],
+["Universal Design for Learning: multiple means of engagement, representation, action/expression",4.06,1,"Knowledge"],
+["Mentor support: how and where to get help",4.06,4,"Knowledge"],
+["Time management and pacing for instructional goals",4.03,3,"Knowledge"],
+["Technology and pedagogy: applying tech skills in an educational setting",4.03,1,"Knowledge"],
+["Leveraging LMS, email, online gradebook and other ed-tech platforms",4.03,1,"Knowledge"],
+["Locating and aligning local, state and national standards with instruction",4.00,1,"Knowledge"],
+["Data privacy: FERPA and other student data privacy laws",3.94,3,"Knowledge"],
+["Managing classroom technology issues (e.g., projectors, student devices)",3.94,1,"Knowledge"],
+["Bloom's Taxonomy: targeting different levels of cognitive, skill, affective development",3.91,1,"Knowledge"],
+["Integrating thinking, feeling and acting for meaningful learning",3.71,1,"Knowledge"],
+
+["Managing behavior, including de-escalation and trauma-responsive strategies",4.70,3,"Skill"],
+["Establishing clear expectations and routines to create structure early",4.67,3,"Skill"],
+["Building relationships: cultivating trust and rapport to prevent discipline issues",4.62,2,"Skill"],
+["Communicating expectations clearly and consistently",4.57,3,"Skill"],
+["Assessing learning: knowing how/when to formatively and summatively check understanding",4.53,1,"Skill"],
+["Scaffolding: breaking down content to build understanding gradually",4.47,1,"Skill"],
+["Differentiating instruction for students with diverse abilities",4.43,2,"Skill"],
+["Providing feedback so students understand progress and next steps",4.43,1,"Skill"],
+["Modifying lessons in real time based on engagement and comprehension",4.43,1,"Skill"],
+["Regulating emotions: staying calm and patient during struggles or behavior issues",4.43,3,"Skill"],
+["Upholding mandated reporting responsibilities",4.41,3,"Skill"],
+["Reflective professional teaching practices: continuous improvement through reflection",4.38,4,"Skill"],
+["Adapting instruction by analyzing student data, learning, and engagement",4.37,1,"Skill"],
+["Teaching students good questioning skills",4.37,1,"Skill"],
+["Using formative and summative data to inform instruction and support success",4.37,1,"Skill"],
+["Designing classroom work centered on student sense-making through activities/discussion",4.33,1,"Skill"],
+["Handling unexpected classroom challenges",4.27,3,"Skill"],
+["Practicing healthy mindsets: resilience and professionalism despite obstacles",4.27,4,"Skill"],
+["Recognizing and addressing students' social-emotional/mental health needs",4.27,2,"Skill"],
+["Collaborating with colleagues and administrators",4.23,4,"Skill"],
+["Determining where students need to be and translating that into substantive learning",4.20,1,"Skill"],
+["Aligning curriculum to standards and prior instruction",4.17,1,"Skill"],
+["Advocating for students by communicating their needs to stakeholders",4.17,2,"Skill"],
+["Designing lessons using Backward Design and Universal Design for Learning",4.13,1,"Skill"],
+["Balancing work and life: setting healthy professional boundaries",4.13,4,"Skill"],
+["Communicating with parents/guardians proactively rather than reactively",4.03,2,"Skill"],
+
+["Creating a safe space where students feel comfortable taking risks and making mistakes",4.66,2,"Disposition"],
+["Flexibility in adjusting lessons in real time based on engagement/understanding",4.59,1,"Disposition"],
+["Patience: recognizing that learning takes time and progress isn't always linear",4.55,2,"Disposition"],
+["Believing the classroom environment must be safe to think, succeed, risk, and fail",4.55,3,"Disposition"],
+["Valuing reflective practice: regularly evaluating one's teaching and adjusting",4.52,4,"Disposition"],
+["Emotional regulation: handling stress and setbacks without taking it personally",4.52,4,"Disposition"],
+["Ethical and moral integrity: serving as a positive role model",4.52,3,"Disposition"],
+["Willingness to pivot and adjust approach based on student needs and school culture",4.48,1,"Disposition"],
+["Openness to feedback: willingness to accept and integrate constructive criticism",4.45,4,"Disposition"],
+["Accepting unexpected classroom challenges with a calm, solution-focused mindset",4.45,3,"Disposition"],
+["Growth mindset: commitment to continuously learn, adapt, and grow professionally",4.41,4,"Disposition"],
+["Embracing challenges and failure as part of growth",4.41,4,"Disposition"],
+["Believing effective teachers must embrace diversity and inclusive environments",4.41,2,"Disposition"],
+["Appreciating systemic challenges students face (poverty, trauma, language barriers)",4.38,2,"Disposition"],
+["Persistence and tenacity: overcoming challenges rather than becoming discouraged",4.34,4,"Disposition"],
+["Staying organized to deliver effective instruction daily",4.34,3,"Disposition"],
+["Recognizing and valuing the individual strengths and experiences students bring",4.34,2,"Disposition"],
+["Finding joy in small victories rather than expecting immediate success",4.32,4,"Disposition"],
+["Humility: understanding that teachers are always learning and don't have all the answers",4.31,4,"Disposition"],
+["Seeing oneself as a learner teaching learners; able to self-evaluate and redirect",4.31,4,"Disposition"],
+["Resilience: the ability to start fresh each day",4.28,4,"Disposition"],
+["Valuing relationship-building across school, district and community",4.28,2,"Disposition"],
+["Willingness to ask for help from an administrator, colleague, or staff member",4.28,4,"Disposition"],
+["Working collaboratively with colleagues to improve instruction and management",4.24,4,"Disposition"],
+["Building positive relationships with administrators and support staff",4.24,4,"Disposition"],
+["A positive attitude toward cooperation with colleagues, administrators, families",4.24,4,"Disposition"],
+["Accountability: taking responsibility for student learning outcomes",4.17,3,"Disposition"],
+["Professionalism and trustworthiness in shaping education today and in the future",4.17,3,"Disposition"],
+["Appreciation for self-reflective learning tied to what's happening in the classroom",4.14,4,"Disposition"],
+["Engagement with parents and families to support student success",4.14,2,"Disposition"],
+["Prioritizing relationships over content: students must feel valued before they can learn",4.10,2,"Disposition"],
+["Viewing student behavior as communication rather than defiance",4.07,2,"Disposition"],
+["Respecting the social, cultural, and political norms of the teaching community",4.07,2,"Disposition"],
+["Maintaining optimism and finding the silver lining in systemic issues",4.03,4,"Disposition"],
+["Genuinely caring about kids",3.93,2,"Disposition"]
+];
+
+// Curated, verified follow-up reading per domain — 1-2 foundational studies plus
+// one free, practitioner-facing resource a teacher can actually open and use.
+const REFERENCES = {
+  1: [
+    { title: "Shulman (1986). Those who understand: Knowledge growth in teaching. Educational Researcher, 15(2), 4–14.", url: "https://doi.org/10.3102/0013189X015002004" },
+    { title: "Bransford, Brown & Cocking, Eds. (2000). How People Learn: Brain, Mind, Experience, and School. National Academies Press.", url: "https://nap.nationalacademies.org/catalog/9853/how-people-learn-brain-mind-experience-and-school" },
+    { title: "CAST (2024). Universal Design for Learning Guidelines, v2.2 — free, practical planning tool.", url: "https://udlguidelines.cast.org/" }
+  ],
+  2: [
+    { title: "Villegas (2007). Dispositions in teacher education: A look at social justice. Journal of Teacher Education, 58(5), 370–380.", url: "https://doi.org/10.1177/0022487107308419" },
+    { title: "Villegas & Lucas (2002). Preparing culturally responsive teachers: Rethinking the curriculum. Journal of Teacher Education, 53(1), 20–32.", url: "https://doi.org/10.1177/0022487102053001003" },
+    { title: "CASEL — core social-emotional learning competencies and classroom strategies (free).", url: "https://casel.org/fundamentals-of-sel/" }
+  ],
+  3: [
+    { title: "Darling-Hammond (2006). Constructing 21st-century teacher education. Journal of Teacher Education, 57(3), 300–314.", url: "https://doi.org/10.1177/0022487105285962" },
+    { title: "Center on PBIS — tiered, trauma-informed classroom behavior strategies (free).", url: "https://www.pbis.org/" },
+    { title: "CCSSO (2013). InTASC Model Core Teaching Standards and Learning Progressions for Teachers 1.0 (free).", url: "https://ccsso.org/resource-library/intasc-model-core-teaching-standards-and-learning-progressions-teachers-10" }
+  ],
+  4: [
+    { title: "Rodgers (2002). Defining reflection: Another look at John Dewey and reflective thinking. Teachers College Record, 104(4), 842–866.", url: "https://doi.org/10.1111/1467-9620.00181" },
+    { title: "Ingersoll, Merrill & Stuckey (2014). Seven Trends: The Transformation of the Teaching Force. CPRE Report #RR-80.", url: "http://www.cpre.org/7trends" },
+    { title: "New Teacher Center — mentoring and induction resources for early-career teachers (free).", url: "https://newteachercenter.org/resources/" }
+  ]
+};
+
+const QUICKSTARTS = [
+  { text: "A student won't stop talking and it's derailing my lesson", domain: 3 },
+  { text: "I can't seem to reach a kid who feels checked out", domain: 2 },
+  { text: "Half the class clearly didn't get today's lesson — now what?", domain: 1 },
+  { text: "I'm exhausted and wondering if I'm cut out for this", domain: 4 },
+  { text: "A parent's email felt hostile — how do I respond?", domain: 2 },
+  { text: "I think I need to file a mandated report — what now?", domain: 3 }
+];
+
+/* =========================================================================
+   BUILD SYSTEM PROMPT
+   ========================================================================= */
+function buildSystemPrompt(){
+  let itemsByDomain = {1:[],2:[],3:[],4:[]};
+  ITEMS.forEach(([text,mean,domain,cat]) => itemsByDomain[domain].push(`- (${cat}, consensus mean ${mean.toFixed(2)}/5) ${text}`));
+
+  let domainBlocks = Object.keys(DOMAINS).map(d => {
+    return `### Domain ${d}: ${DOMAINS[d].name}\n${DOMAINS[d].desc}\n${itemsByDomain[d].join("\n")}`;
+  }).join("\n\n");
+
+  return `You are "Classroom Coach," a supportive assistant embedded in a Canvas course for alternatively certified K-12 teachers in Montana. Your guidance is grounded in a real three-round Delphi study (N=36 experienced teachers, administrators, and teacher educators) that reached consensus on the knowledge, skills, and dispositions newly alt-certified teachers need to succeed. Every item below carries the panel's consensus mean rating out of 5.
+
+${domainBlocks}
+
+HOW TO RESPOND:
+- Teachers usually come to you mid-situation, not browsing for theory. Start by briefly acknowledging what they're dealing with — one sentence, no therapy-speak.
+- If the scenario is ambiguous or you're missing one key detail that would change your advice, ask ONE short clarifying question. Otherwise, just help.
+- Give 2-3 concrete, doable suggestions tied to real classroom practice — not abstractions. Keep the whole reply under ~180 words unless they ask for more depth.
+- Pick the ONE item from the list above that most concretely grounds your main suggestion. Mention it naturally in your answer (e.g., "experienced teachers on this panel rated establishing clear routines early among the highest-consensus practices").
+- End your reply with exactly one line in this exact machine-readable format (this line will be parsed and hidden from the visible chat, so it's fine for it to feel a bit mechanical):
+STAMP|<domain number 1-4>|<the exact item text you cited, verbatim from the list>|<the mean score>
+- If truly nothing above applies (e.g., they're just chatting or asking something unrelated to teaching), skip the STAMP line entirely.
+- Do not cite or invent any studies, authors, or links yourself — a "Go deeper" reading list tied to the domain is added automatically by the app underneath your reply, so just focus on the practical answer.
+- Never diagnose a student or the teacher. Never give legal advice on mandated reporting beyond "talk to your administrator/designated reporter today" — that duty is time-sensitive and procedural, and specifics vary by district.
+- If the teacher uses what looks like a real student's name, don't repeat it back — refer to "the student" instead, and gently note once that it's best not to include student names since these conversations are logged.
+- If a teacher describes something suggesting a student is in danger, being harmed, or at risk of self-harm, or the teacher themselves is in crisis, stop coaching and clearly tell them to contact their building administrator, school counselor, or appropriate emergency resource right away, in addition to anything else you say.
+- Warm, plain-spoken, teacher-to-teacher tone. No jargon, no bullet-point walls, no em-dashes as filler.`;
+}
+
+const SYSTEM_PROMPT = buildSystemPrompt();
+
+/* =========================================================================
+   UI: legend + quickstarts
+   ========================================================================= */
+const legendEl = document.getElementById("legend");
+Object.keys(DOMAINS).forEach(d => {
+  const el = document.createElement("div");
+  el.className = "tag";
+  el.innerHTML = `<span class="dot" style="background:${DOMAINS[d].color}"></span>${DOMAINS[d].name}`;
+  legendEl.appendChild(el);
+});
+
+const quickstartEl = document.getElementById("quickstart");
+QUICKSTARTS.forEach(q => {
+  const btn = document.createElement("button");
+  btn.className = "card-btn";
+  btn.style.setProperty("--card-color", DOMAINS[q.domain].color);
+  btn.textContent = q.text;
+  btn.addEventListener("click", () => {
+    input.value = q.text;
+    sendMessage();
+  });
+  quickstartEl.appendChild(btn);
+});
+
+/* =========================================================================
+   AUTHENTICATION (real login, enforced server-side by the Worker)
+   The session token lives in localStorage only — it's just a client-side
+   convenience so a student isn't asked to log in on every visit. The actual
+   gate is the Worker checking this token against the "sessions" table
+   before it will answer /api/chat or accept /api/log writes.
+   ========================================================================= */
+let participantId = null; // set to the logged-in username after auth
+
+function getToken(){ return localStorage.getItem("cc_session_token"); }
+function setSession(token, username){
+  localStorage.setItem("cc_session_token", token);
+  localStorage.setItem("cc_username", username);
+}
+function clearSession(){
+  localStorage.removeItem("cc_session_token");
+  localStorage.removeItem("cc_username");
+}
+
+function showParticipantBadge(){
+  const badge = document.getElementById("participantBadge");
+  badge.innerHTML = `Logged in as: ${participantId} <button id="logoutBtn">log out</button>`;
+  document.getElementById("logoutBtn").addEventListener("click", async () => {
+    try{
+      await fetch(WORKER_BASE_URL + "/api/logout", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + getToken() }
+      });
+    } catch(e){ /* ignore — clearing locally either way */ }
+    clearSession();
+    participantId = null;
+    introOverlay.classList.remove("hidden");
+  });
+}
+
+const introOverlay = document.getElementById("introOverlay");
+const tabLogin = document.getElementById("tabLogin");
+const tabRegister = document.getElementById("tabRegister");
+const loginForm = document.getElementById("loginForm");
+const registerForm = document.getElementById("registerForm");
+
+tabLogin.addEventListener("click", () => {
+  tabLogin.classList.add("active"); tabRegister.classList.remove("active");
+  loginForm.classList.remove("hidden"); registerForm.classList.add("hidden");
+});
+tabRegister.addEventListener("click", () => {
+  tabRegister.classList.add("active"); tabLogin.classList.remove("active");
+  registerForm.classList.remove("hidden"); loginForm.classList.add("hidden");
+});
+
+function onAuthSuccess(token, username){
+  setSession(token, username);
+  participantId = username;
+  introOverlay.classList.add("hidden");
+  showParticipantBadge();
+}
+
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById("loginError");
+  errEl.textContent = "";
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  try{
+    const res = await fetch(WORKER_BASE_URL + "/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok){ errEl.textContent = data.error || "Login failed."; return; }
+    onAuthSuccess(data.token, data.username);
+  } catch(err){
+    errEl.textContent = "Couldn't reach the server. Please try again.";
+  }
+});
+
+registerForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById("registerError");
+  errEl.textContent = "";
+  const accessCode = document.getElementById("regAccessCode").value.trim();
+  const studentName = document.getElementById("regName").value.trim();
+  const username = document.getElementById("regUsername").value.trim();
+  const password = document.getElementById("regPassword").value;
+  try{
+    const res = await fetch(WORKER_BASE_URL + "/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ accessCode, username, password, studentName })
+    });
+    const data = await res.json();
+    if (!res.ok){ errEl.textContent = data.error || "Registration failed."; return; }
+    onAuthSuccess(data.token, data.username);
+  } catch(err){
+    errEl.textContent = "Couldn't reach the server. Please try again.";
+  }
+});
+
+(function initAuth(){
+  const token = getToken();
+  const username = localStorage.getItem("cc_username");
+  if (token && username){
+    participantId = username;
+    introOverlay.classList.add("hidden");
+    showParticipantBadge();
+  } else {
+    introOverlay.classList.remove("hidden");
+  }
+})();
+
+/* =========================================================================
+   QUESTION LOG — now a real INSERT via the Worker (COACH_DB), tied to the
+   logged-in username server-side. A plain INSERT means two students
+   submitting at the same instant both land as separate rows.
+   ========================================================================= */
+async function logQuestion(question, stamp){
+  try{
+    await fetch(WORKER_BASE_URL + "/api/log", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + getToken()
+      },
+      body: JSON.stringify({
+        question: question,
+        domain: stamp ? DOMAINS[stamp.domain].name : "",
+        item: stamp ? stamp.item : "",
+        mean: stamp ? stamp.mean : ""
+      })
+    });
+  } catch(e){
+    console.error("Could not log question:", e);
+  }
+}
+
+
+const chatLog = document.getElementById("chatLog");
+const input = document.getElementById("input");
+const sendBtn = document.getElementById("sendBtn");
+const emptyState = document.getElementById("emptyState");
+const resetBtn = document.getElementById("resetBtn");
+
+let history = []; // {role, content}
+
+function scrollToBottom(){ chatLog.scrollTop = chatLog.scrollHeight; }
+
+function addUserBubble(text){
+  emptyState.style.display = "none";
+  const wrap = document.createElement("div");
+  wrap.className = "msg user";
+  wrap.innerHTML = `<div class="bubble"></div>`;
+  wrap.querySelector(".bubble").textContent = text;
+  chatLog.appendChild(wrap);
+  scrollToBottom();
+}
+
+function addAssistantBubble(text, stamp){
+  const wrap = document.createElement("div");
+  wrap.className = "msg assistant";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  if (stamp){
+    const s = document.createElement("div");
+    s.className = "stamp";
+    s.style.setProperty("--stamp-color", DOMAINS[stamp.domain].color);
+    s.innerHTML = `${DOMAINS[stamp.domain].name} · <span class="mean">${stamp.mean}/5 consensus</span>`;
+    wrap.appendChild(s);
+
+    const refs = REFERENCES[stamp.domain];
+    if (refs && refs.length){
+      const box = document.createElement("div");
+      box.className = "readmore";
+      const label = document.createElement("div");
+      label.className = "readmore-label";
+      label.textContent = "Go deeper";
+      box.appendChild(label);
+      refs.forEach(r => {
+        const a = document.createElement("a");
+        a.href = r.url;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        a.textContent = r.title;
+        box.appendChild(a);
+      });
+      wrap.appendChild(box);
+    }
+  }
+  chatLog.appendChild(wrap);
+  scrollToBottom();
+  return wrap;
+}
+
+function addTypingIndicator(){
+  const wrap = document.createElement("div");
+  wrap.className = "msg assistant typing";
+  wrap.id = "typingIndicator";
+  wrap.innerHTML = `<div class="bubble">thinking it through…</div>`;
+  chatLog.appendChild(wrap);
+  scrollToBottom();
+}
+function removeTypingIndicator(){
+  const el = document.getElementById("typingIndicator");
+  if (el) el.remove();
+}
+
+function parseStamp(raw){
+  const match = raw.match(/STAMP\|(\d)\|([^|]+)\|([\d.]+)\s*$/);
+  if (!match) return { text: raw.trim(), stamp: null };
+  const cleanText = raw.slice(0, match.index).trim();
+  return { text: cleanText, stamp: { domain: match[1], item: match[2].trim(), mean: match[3] } };
+}
+
+async function sendMessage(){
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  sendBtn.disabled = true;
+
+  addUserBubble(text);
+  history.push({ role: "user", content: text });
+  addTypingIndicator();
+
+  try{
+    const response = await fetch(API_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + getToken()
+      },
+      body: JSON.stringify({
+        system: SYSTEM_PROMPT,
+        messages: history
+      })
+    });
+
+    if (response.status === 401){
+      removeTypingIndicator();
+      clearSession();
+      participantId = null;
+      introOverlay.classList.remove("hidden");
+      addAssistantBubble("Your session expired — please log in again to continue.", null);
+      return;
+    }
+
+    const data = await response.json();
+    removeTypingIndicator();
+
+    const raw = (data.content || [])
+      .map(block => block.type === "text" ? block.text : "")
+      .filter(Boolean)
+      .join("\n")
+      .trim();
+
+    if (!raw) throw new Error("Empty response");
+
+    const { text: cleanText, stamp } = parseStamp(raw);
+    addAssistantBubble(cleanText, stamp);
+    history.push({ role: "assistant", content: cleanText });
+    logQuestion(text, stamp);
+
+  } catch(err){
+    removeTypingIndicator();
+    addAssistantBubble("I couldn't reach the assistant just now. If this keeps happening, let your instructor or IT contact know the Classroom Coach widget's connection needs a look.", null);
+    console.error("Classroom Coach error:", err);
+    logQuestion(text, null);
+  } finally {
+    sendBtn.disabled = false;
+  }
+}
+
+sendBtn.addEventListener("click", sendMessage);
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey){
+    e.preventDefault();
+    sendMessage();
+  }
+});
+input.addEventListener("input", () => {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 90) + "px";
+});
+
+resetBtn.addEventListener("click", () => {
+  history = [];
+  chatLog.innerHTML = "";
+  chatLog.appendChild(emptyState);
+  emptyState.style.display = "block";
+});
+
+/* =========================================================================
+   INSTRUCTOR VIEW — questions log + registered students, passcode-gated
+   ========================================================================= */
+const logModal = document.getElementById("logModal");
+const logTableWrap = document.getElementById("logTableWrap");
+const logCardSubtitle = document.getElementById("logCardSubtitle");
+const logTabQuestions = document.getElementById("logTabQuestions");
+const logTabUsers = document.getElementById("logTabUsers");
+
+let currentLogEntries = [];
+let currentUsers = [];
+let currentPasscode = null;
+let currentView = "questions"; // "questions" | "users"
+
+function domainDotColor(domainName){
+  const match = Object.values(DOMAINS).find(d => d.name === domainName);
+  return match ? match.color : "var(--slate)";
+}
+
+function escapeHtml(str){
+  const div = document.createElement("div");
+  div.textContent = str == null ? "" : String(str);
+  return div.innerHTML;
+}
+
+function renderLogTable(entries){
+  if (!entries.length){
+    logTableWrap.innerHTML = `<div class="log-empty">No questions logged yet.</div>`;
+    return;
+  }
+  const rows = entries.slice().reverse().map(e => `
+    <tr>
+      <td>${new Date(e.ts).toLocaleString()}</td>
+      <td>${escapeHtml(e.participant)}</td>
+      <td class="domain-cell">${e.domain ? `<span class="dot" style="background:${domainDotColor(e.domain)}"></span>${escapeHtml(e.domain)}` : "—"}</td>
+      <td>${escapeHtml(e.question)}</td>
+    </tr>`).join("");
+  logTableWrap.innerHTML = `
+    <table class="log-table">
+      <thead><tr><th>Time</th><th>Participant</th><th>Domain</th><th>Question</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function renderUsersTable(users){
+  if (!users.length){
+    logTableWrap.innerHTML = `<div class="log-empty">No students have registered yet.</div>`;
+    return;
+  }
+  const rows = users.map(u => `
+    <tr>
+      <td>${escapeHtml(u.username)}</td>
+      <td>${escapeHtml(u.student_name || "—")}</td>
+      <td>${escapeHtml(u.access_code || "—")}</td>
+      <td>${new Date(u.created_at).toLocaleString()}</td>
+    </tr>`).join("");
+  logTableWrap.innerHTML = `
+    <table class="log-table">
+      <thead><tr><th>Username</th><th>Name</th><th>Access Code</th><th>Signed Up</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function toCsv(entries){
+  const header = ["Time","Participant","Domain","Cited Item","Consensus Mean","Question"];
+  const escapeCsv = (v) => `"${String(v == null ? "" : v).replace(/"/g,'""')}"`;
+  const lines = [header.map(escapeCsv).join(",")];
+  entries.forEach(e => {
+    lines.push([e.ts, e.participant, e.domain, e.item, e.mean, e.question].map(escapeCsv).join(","));
+  });
+  return lines.join("\n");
+}
+
+function usersToCsv(users){
+  const escapeCsv = (v) => `"${String(v == null ? "" : v).replace(/"/g,'""')}"`;
+  const lines = [["Username","Name","Access Code","Signed Up"].map(escapeCsv).join(",")];
+  users.forEach(u => {
+    lines.push([u.username, u.student_name, u.access_code, u.created_at].map(escapeCsv).join(","));
+  });
+  return lines.join("\n");
+}
+
+async function fetchQuestions(passcode){
+  const res = await fetch(WORKER_BASE_URL + "/api/log?passcode=" + encodeURIComponent(passcode));
+  if (res.status === 401) return null;
+  const data = await res.json();
+  return data.entries || [];
+}
+
+async function fetchUsers(passcode){
+  const res = await fetch(WORKER_BASE_URL + "/api/users?passcode=" + encodeURIComponent(passcode));
+  if (res.status === 401) return null;
+  const data = await res.json();
+  return data.users || [];
+}
+
+function setActiveTab(view){
+  currentView = view;
+  logTabQuestions.classList.toggle("active", view === "questions");
+  logTabUsers.classList.toggle("active", view === "users");
+  logCardSubtitle.textContent = view === "questions"
+    ? "All questions logged by participants using this widget."
+    : "All students who have created an account.";
+  if (view === "questions") renderLogTable(currentLogEntries);
+  else renderUsersTable(currentUsers);
+}
+
+document.getElementById("instructorBtn").addEventListener("click", async () => {
+  const passcode = window.prompt("Instructor passcode:");
+  if (passcode === null) return;
+
+  logModal.classList.remove("hidden");
+  logTableWrap.innerHTML = `<div class="log-empty">Loading…</div>`;
+
+  try{
+    const entries = await fetchQuestions(passcode);
+    if (entries === null){
+      logModal.classList.add("hidden");
+      window.alert("Incorrect passcode.");
+      return;
+    }
+    currentPasscode = passcode;
+    currentLogEntries = entries;
+    // Pre-fetch students too so switching tabs feels instant.
+    currentUsers = (await fetchUsers(passcode)) || [];
+    setActiveTab("questions");
+  } catch(e){
+    logTableWrap.innerHTML = `<div class="log-empty">Couldn't reach the server.</div>`;
+  }
+});
+
+logTabQuestions.addEventListener("click", () => setActiveTab("questions"));
+logTabUsers.addEventListener("click", () => setActiveTab("users"));
+
+document.getElementById("closeLogBtn").addEventListener("click", () => {
+  logModal.classList.add("hidden");
+});
+
+document.getElementById("exportCsvBtn").addEventListener("click", () => {
+  const isQuestions = currentView === "questions";
+  const data = isQuestions ? currentLogEntries : currentUsers;
+  if (!data.length){
+    window.alert(isQuestions ? "No questions logged yet." : "No students have registered yet.");
+    return;
+  }
+  const csv = isQuestions ? toCsv(currentLogEntries) : usersToCsv(currentUsers);
+  const filenameBase = isQuestions ? "classroom-coach-log" : "classroom-coach-students";
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filenameBase}-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
+
+</script>
+</body>
+</html>
