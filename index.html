@@ -354,6 +354,32 @@
     padding:8px 16px; cursor:pointer;
   }
 
+  /* ---------- Log-save failure note (under a coach reply) ---------- */
+  .log-warning{
+    margin-top:6px; padding:6px 9px;
+    font-size:12px; line-height:1.4;
+    color:#7A2E1E; background:#FBE9E3;
+    border:1px solid rgba(122,46,30,0.25); border-radius:6px;
+  }
+
+  /* ---------- Excel download menu ---------- */
+  .export-wrap{position:relative;}
+  .export-menu{
+    position:absolute; right:0; top:calc(100% + 6px); z-index:20;
+    min-width:260px; padding:6px;
+    background:var(--chalk); border:1px solid var(--line); border-radius:10px;
+    box-shadow:0 8px 24px rgba(38,51,44,0.16);
+  }
+  .export-menu.hidden{display:none;}
+  .export-menu button{
+    display:block; width:100%; text-align:left;
+    background:none; border:none; border-radius:6px;
+    font-family:'Work Sans', sans-serif; font-size:13px; color:var(--ink);
+    padding:8px 10px; cursor:pointer;
+  }
+  .export-menu button:hover, .export-menu button:focus{background:var(--paper); outline:none;}
+  .export-menu button small{display:block; color:var(--slate); font-size:11.5px; margin-top:2px;}
+
   /* ---------- Instructor log modal ---------- */
   .log-card{ max-width:900px; max-height:82vh; display:flex; flex-direction:column; }
   .log-card-header{
@@ -522,7 +548,14 @@
         <p id="logCardSubtitle">Every question and coach response, grouped by student.</p>
       </div>
       <div class="overlay-actions">
-        <button class="btn-ghost" id="exportCsvBtn">Export CSV</button>
+        <div class="export-wrap">
+          <button class="btn-ghost" id="exportXlsxBtn" aria-haspopup="true" aria-expanded="false">Download Excel ▾</button>
+          <div class="export-menu hidden" id="exportMenu" role="menu">
+            <button type="button" role="menuitem" data-mode="per-student">One sheet per student<small>Plus an "All Responses" sheet up front</small></button>
+            <button type="button" role="menuitem" data-mode="combined">Single combined sheet<small>Every exchange in one table</small></button>
+            <button type="button" role="menuitem" data-mode="students">Registered students<small>Roster of accounts</small></button>
+          </div>
+        </div>
         <button class="btn-ghost" id="closeLogBtn">Close</button>
       </div>
     </div>
@@ -872,25 +905,53 @@ registerForm.addEventListener("submit", async (e) => {
    logged-in username server-side. A plain INSERT means two students
    submitting at the same instant both land as separate rows.
    ========================================================================= */
-async function logQuestion(question, stamp, response){
-  try{
-    await fetch(WORKER_BASE_URL + "/api/log", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + getToken()
-      },
-      body: JSON.stringify({
-        question: question,
-        response: response || "",
-        domain: stamp ? DOMAINS[stamp.domain].name : "",
-        item: stamp ? stamp.item : "",
-        mean: stamp ? stamp.mean : ""
-      })
-    });
-  } catch(e){
-    console.error("Could not log question:", e);
+/* Earlier versions fired this request and ignored the answer, so a failed
+   save (missing database column, Worker not redeployed, expired session)
+   looked exactly like a successful one. Now: the Worker's reply is checked,
+   one retry is made, and if it still fails a small note appears under the
+   coach's reply with the server's reason — so a test shows you what broke. */
+async function logQuestion(question, stamp, response, bubbleEl){
+  const payload = JSON.stringify({
+    question: question,
+    response: response || "",
+    domain: stamp ? DOMAINS[stamp.domain].name : "",
+    item: stamp ? stamp.item : "",
+    mean: stamp ? stamp.mean : ""
+  });
+
+  let lastError = "";
+  for (let attempt = 1; attempt <= 2; attempt++){
+    try{
+      const res = await fetch(WORKER_BASE_URL + "/api/log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + getToken()
+        },
+        body: payload
+      });
+      if (res.ok) return true;
+      let detail = "";
+      try { detail = (await res.json()).error || ""; } catch(_) {
+        try { detail = await res.text(); } catch(__) {}
+      }
+      lastError = `HTTP ${res.status}${detail ? " — " + detail : ""}`;
+      if (res.status === 401 || res.status === 400) break; // retrying won't help
+    } catch(e){
+      lastError = (e && e.message) ? e.message : String(e);
+    }
+    if (attempt === 1) await new Promise(r => setTimeout(r, 1200));
   }
+
+  console.error("Classroom Coach: question was NOT saved to the log:", lastError);
+  if (bubbleEl){
+    const note = document.createElement("div");
+    note.className = "log-warning";
+    note.textContent = "⚠ This exchange was not saved to the research log (" + lastError.slice(0, 160) + "). Please let your instructor know.";
+    bubbleEl.appendChild(note);
+    scrollToBottom();
+  }
+  return false;
 }
 
 
@@ -1016,15 +1077,15 @@ async function sendMessage(){
     if (!raw) throw new Error("Empty response");
 
     const { text: cleanText, stamp } = parseStamp(raw);
-    addAssistantBubble(cleanText, stamp);
+    const replyEl = addAssistantBubble(cleanText, stamp);
     history.push({ role: "assistant", content: cleanText });
-    logQuestion(text, stamp, cleanText);
+    logQuestion(text, stamp, cleanText, replyEl);
 
   } catch(err){
     removeTypingIndicator();
     addAssistantBubble("I couldn't reach the assistant just now. If this keeps happening, let your instructor or IT contact know the Classroom Coach widget's connection needs a look.", null);
     console.error("Classroom Coach error:", err);
-    logQuestion(text, null, "");
+    logQuestion(text, null, "[No response — the coach could not be reached]");
   } finally {
     sendBtn.disabled = false;
   }
@@ -1203,24 +1264,236 @@ document.getElementById("closeLogBtn").addEventListener("click", () => {
   logModal.classList.add("hidden");
 });
 
-document.getElementById("exportCsvBtn").addEventListener("click", () => {
-  const isQuestions = currentView === "questions";
-  const data = isQuestions ? currentLogEntries : currentUsers;
-  if (!data.length){
-    window.alert(isQuestions ? "No questions logged yet." : "No students have registered yet.");
-    return;
+/* =========================================================================
+   EXCEL EXPORT (.xlsx) — built in the browser with ExcelJS, loaded only
+   when the instructor clicks Download, so students never pay for it.
+   Modes:
+     per-student → "All Responses" sheet + one sheet per student
+     combined    → one sheet with every exchange
+     students    → roster of registered accounts
+   ========================================================================= */
+const EXCELJS_URLS = [
+  "https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js",
+  "https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
+];
+let excelJsPromise = null;
+function loadExcelJs(){
+  if (window.ExcelJS) return Promise.resolve(window.ExcelJS);
+  if (excelJsPromise) return excelJsPromise;
+  excelJsPromise = (async () => {
+    for (const src of EXCELJS_URLS){
+      try{
+        await new Promise((resolve, reject) => {
+          const s = document.createElement("script");
+          s.src = src; s.async = true;
+          s.onload = resolve; s.onerror = reject;
+          document.head.appendChild(s);
+        });
+        if (window.ExcelJS) return window.ExcelJS;
+      } catch(_) { /* try the next CDN */ }
+    }
+    excelJsPromise = null;
+    throw new Error("Could not load the Excel library. Check your internet connection and try again.");
+  })();
+  return excelJsPromise;
+}
+
+const XL_INK = "FF26332C", XL_PAPER = "FFF4EFE3", XL_LINE = "FFD9D6CC";
+const XL_CELL_MAX = 32000; // Excel's hard limit is 32,767 characters per cell
+
+const QUESTION_COLUMNS = [
+  { header: "#",               key: "n",        width: 6  },
+  { header: "Date & Time",     key: "ts",       width: 20 },
+  { header: "Username",        key: "user",     width: 16 },
+  { header: "Student Name",    key: "name",     width: 22 },
+  { header: "Domain",          key: "domain",   width: 30 },
+  { header: "Cited Delphi Item", key: "item",   width: 34 },
+  { header: "Consensus Mean",  key: "mean",     width: 11 },
+  { header: "Question",        key: "question", width: 55 },
+  { header: "Coach Response",  key: "response", width: 90 },
+  { header: "Response Saved?", key: "saved",    width: 12 }
+];
+
+function clipCell(v){
+  // Strip control characters that are illegal in .xlsx XML (they'd corrupt the file)
+  const s = (v == null ? "" : String(v)).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+  return s.length > XL_CELL_MAX ? s.slice(0, XL_CELL_MAX) + " …[truncated]" : s;
+}
+
+// ExcelJS writes Date objects as UTC. Shift so the sheet shows the
+// instructor's local clock time (e.g. Mountain Time), not UTC.
+function toLocalExcelDate(value){
+  if (!value) return null;
+  const d = new Date(value);
+  if (isNaN(d)) return null;
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+}
+
+function studentNameMap(){
+  const m = {};
+  (currentUsers || []).forEach(u => { m[u.username] = u.student_name || ""; });
+  return m;
+}
+
+function styleSheet(ws, wrapKeys){
+  const header = ws.getRow(1);
+  header.height = 22;
+  header.eachCell(c => {
+    c.font = { bold: true, color: { argb: "FFFFFFFF" }, name: "Calibri", size: 11 };
+    c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: XL_INK } };
+    c.alignment = { vertical: "middle", horizontal: "left", wrapText: true };
+  });
+  ws.views = [{ state: "frozen", ySplit: 1 }];
+  ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columnCount } };
+  ws.eachRow((row, i) => {
+    if (i === 1) return;
+    row.eachCell({ includeEmpty: true }, (c) => {
+      c.alignment = { vertical: "top", wrapText: wrapKeys.includes(ws.getColumn(c.col).key) };
+      c.border = { bottom: { style: "thin", color: { argb: XL_LINE } } };
+      if (i % 2 === 0) c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: XL_PAPER } };
+    });
+  });
+  ws.pageSetup = { orientation: "landscape", fitToPage: true, fitToWidth: 1, fitToHeight: 0 };
+}
+
+function addQuestionSheet(wb, sheetName, entries, names){
+  const ws = wb.addWorksheet(sheetName);
+  ws.columns = QUESTION_COLUMNS.map(c => ({ ...c }));
+  entries.forEach((e, idx) => {
+    const resp = e.response == null ? "" : String(e.response);
+    const failed = !resp || resp.startsWith("[No response");
+    const meanNum = parseFloat(e.mean);
+    const d = toLocalExcelDate(e.ts);
+    ws.addRow({
+      n: idx + 1,
+      ts: d || clipCell(e.ts),
+      user: clipCell(e.participant),
+      name: clipCell(names[e.participant] || ""),
+      domain: clipCell(e.domain),
+      item: clipCell(e.item),
+      mean: isNaN(meanNum) ? clipCell(e.mean) : meanNum,
+      question: clipCell(e.question),
+      response: clipCell(resp),
+      saved: failed ? "No" : "Yes"
+    });
+  });
+  ws.getColumn("ts").numFmt = "yyyy-mm-dd h:mm AM/PM";
+  ws.getColumn("mean").numFmt = "0.00";
+  styleSheet(ws, ["question", "response", "item", "domain", "name"]);
+  // Flag rows where no coach response was stored
+  ws.eachRow((row, i) => {
+    if (i > 1 && row.getCell("saved").value === "No"){
+      row.getCell("saved").font = { bold: true, color: { argb: "FF9C2A14" } };
+    }
+  });
+  return ws;
+}
+
+// Excel sheet names: ≤31 chars, no : \ / ? * [ ], must be unique (case-insensitive)
+function safeSheetName(raw, used){
+  let base = String(raw || "Unknown").replace(/[:\\\/\?\*\[\]]/g, "-").replace(/^'+|'+$/g, "").trim() || "Unknown";
+  base = base.slice(0, 31);
+  let name = base, n = 2;
+  while (used.has(name.toLowerCase())){
+    const suffix = ` (${n++})`;
+    name = base.slice(0, 31 - suffix.length) + suffix;
   }
-  const csv = isQuestions ? toCsv(currentLogEntries) : usersToCsv(currentUsers);
-  const filenameBase = isQuestions ? "classroom-coach-log" : "classroom-coach-students";
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  used.add(name.toLowerCase());
+  return name;
+}
+
+async function downloadWorkbook(wb, filenameBase){
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${filenameBase}-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `${filenameBase}-${new Date().toISOString().slice(0,10)}.xlsx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+async function buildExcel(mode){
+  const ExcelJS = await loadExcelJs();
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Classroom Coach";
+  wb.created = new Date();
+
+  if (mode === "students"){
+    if (!currentUsers.length) throw new Error("No students have registered yet.");
+    const ws = wb.addWorksheet("Registered Students");
+    ws.columns = [
+      { header: "Username", key: "u", width: 18 },
+      { header: "Student Name", key: "n", width: 26 },
+      { header: "Access Code", key: "c", width: 18 },
+      { header: "Signed Up", key: "t", width: 20 }
+    ];
+    currentUsers.forEach(u => {
+      const d = toLocalExcelDate(u.created_at);
+      ws.addRow({ u: clipCell(u.username), n: clipCell(u.student_name), c: clipCell(u.access_code),
+                  t: d || clipCell(u.created_at) });
+    });
+    ws.getColumn("t").numFmt = "yyyy-mm-dd h:mm AM/PM";
+    styleSheet(ws, ["n"]);
+    await downloadWorkbook(wb, "classroom-coach-students");
+    return;
+  }
+
+  if (!currentLogEntries.length) throw new Error("No questions logged yet.");
+  const names = studentNameMap();
+  // Chronological within each student, students alphabetical
+  const all = currentLogEntries.slice().sort((a, b) =>
+    String(a.participant).localeCompare(String(b.participant)) || String(a.ts).localeCompare(String(b.ts)));
+
+  if (mode === "combined"){
+    addQuestionSheet(wb, "All Responses", all, names);
+    await downloadWorkbook(wb, "classroom-coach-log-combined");
+    return;
+  }
+
+  // per-student ("history" is a sheet name Excel reserves)
+  const used = new Set(["history"]);
+  addQuestionSheet(wb, safeSheetName("All Responses", used), all, names);
+  const byStudent = new Map();
+  all.forEach(e => {
+    const k = e.participant || "Unknown";
+    if (!byStudent.has(k)) byStudent.set(k, []);
+    byStudent.get(k).push(e);
+  });
+  byStudent.forEach((items, user) => {
+    const label = names[user] ? `${names[user]} (${user})` : user;
+    addQuestionSheet(wb, safeSheetName(label, used), items, names);
+  });
+  await downloadWorkbook(wb, "classroom-coach-log-by-student");
+}
+
+const exportBtn = document.getElementById("exportXlsxBtn");
+const exportMenu = document.getElementById("exportMenu");
+function closeExportMenu(){ exportMenu.classList.add("hidden"); exportBtn.setAttribute("aria-expanded", "false"); }
+exportBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  const open = exportMenu.classList.toggle("hidden") === false;
+  exportBtn.setAttribute("aria-expanded", open ? "true" : "false");
+});
+document.addEventListener("click", (e) => { if (!exportMenu.contains(e.target)) closeExportMenu(); });
+exportMenu.querySelectorAll("button[data-mode]").forEach(b => {
+  b.addEventListener("click", async () => {
+    closeExportMenu();
+    const original = exportBtn.textContent;
+    exportBtn.disabled = true;
+    exportBtn.textContent = "Building…";
+    try{
+      await buildExcel(b.dataset.mode);
+    } catch(err){
+      window.alert(err && err.message ? err.message : "Couldn't build the Excel file.");
+      console.error("Excel export error:", err);
+    } finally {
+      exportBtn.disabled = false;
+      exportBtn.textContent = original;
+    }
+  });
 });
 
 </script>
